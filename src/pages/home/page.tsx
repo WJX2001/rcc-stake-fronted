@@ -4,17 +4,55 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useAccount, useWalletClient } from 'wagmi';
 import LoadingButton from '@mui/lab/LoadingButton';
 import { useStakeContract } from '../../hooks/useContract';
+import { Pid } from '../../util';
+import { formatUnits, parseUnits } from 'viem';
+import { waitForTransactionReceipt } from 'viem/actions';
+import { toast } from 'react-toastify';
 
 const Home = () => {
   // 返回合约实例以及账户信息以及链信息
   const stakeContract = useStakeContract();
-  const [amount, setAmount] = useState('0');
   const { address, isConnected } = useAccount();
   const { data } = useWalletClient();
 
+  // 状态声明
+  const [amount, setAmount] = useState<string>('0');
+  const [stakedAmount, setStakedAmount] = useState<string>('0');
+  const [loading, setLoading] = useState<boolean>(false);
+
+  // 将代币存入合约获得token
+  const handleStake = async () => {
+    if (!stakeContract || !data) return;
+
+    try {
+      setLoading(true);
+      const tx = await stakeContract.write.depositETH([], {
+        value: parseUnits(amount, 18),
+      });
+      // 获取交易回执
+      const res = await waitForTransactionReceipt(data, { hash: tx });
+      console.log(res, 'tx');
+      toast.success('Transaction receipt !');
+      setLoading(false);
+      // 将合约中刚存入的余额进行更新
+      getStakedAmount();
+    } catch (error) {
+      setLoading(false);
+      console.log(error, 'stake-error');
+    }
+  };
+
+  const getStakedAmount = useCallback(async () => {
+    if (address && stakeContract) {
+      const res = await stakeContract?.read.stakingBalance([Pid, address]);
+      // 将wei为单位转为eth
+      setStakedAmount(formatUnits(res as bigint, 18));
+    }
+  }, [stakeContract, address]);
+
   useEffect(() => {
     if (address && stakeContract) {
-      const res = await stakeContract?.read.stakingBalance([])
+      getStakedAmount();
     }
   }, [stakeContract, address]);
 
@@ -40,7 +78,7 @@ const Home = () => {
       >
         <Box display={'flex'} alignItems={'center'} gap={'5px'} mb="10px">
           <Box>Staked Amount: </Box>
-          <Box>1 ETH</Box>
+          <Box>{stakedAmount} ETH</Box>
         </Box>
         <TextField
           onChange={(e) => {
@@ -53,7 +91,13 @@ const Home = () => {
           {!isConnected ? (
             <ConnectButton />
           ) : (
-            <LoadingButton variant="contained">Stake</LoadingButton>
+            <LoadingButton
+              variant="contained"
+              loading={loading}
+              onClick={handleStake}
+            >
+              Stake
+            </LoadingButton>
           )}
         </Box>
       </Box>
