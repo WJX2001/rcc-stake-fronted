@@ -1,13 +1,16 @@
-import { Box, TextField, Typography } from '@mui/material';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import React, { useCallback, useEffect, useState } from 'react';
-import { useAccount, useWalletClient } from 'wagmi';
-import LoadingButton from '@mui/lab/LoadingButton';
+'use client';
+import { Box, Button, TextField, Typography } from '@mui/material';
+import styles from '../../styles/Home.module.css';
 import { useStakeContract } from '../../hooks/useContract';
-import { Pid } from '../../util';
-import { formatUnits, parseUnits } from 'viem';
-import { waitForTransactionReceipt } from 'viem/actions';
+import { useCallback, useEffect, useState } from 'react';
+
+import { useAccount, useWalletClient } from 'wagmi';
+import { formatUnits, parseUnits, zeroAddress } from 'viem';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import LoadingButton from '@mui/lab/LoadingButton';
 import { toast } from 'react-toastify';
+import { waitForTransactionReceipt } from 'viem/actions';
+import { Pid } from '../../util';
 
 const Home = () => {
   // 返回合约实例以及账户信息以及链信息
